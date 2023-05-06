@@ -69,16 +69,20 @@ const PokedexDataGrid = () => {
               variant="contained"
               size="small"
               onClick={ async() => {
-                const apiUrl = new URL('/capture', API_URL);
-                await fetch(apiUrl.toString(), 
-                            { method: 'PATCH', 
-                              headers: {
-                                'Content-Type': 'application/json'
-                              },
-                              body: JSON.stringify({pokemonName: params.row.name}) }
-                          );
-                //fetchData();
-                updateRow(params.row.name);
+                setIsLoading(true);
+                try {
+                  const apiUrl = new URL(`/capture/${params.row.name}`, API_URL);
+                  const response = await fetch(apiUrl.toString(), { 
+                                    method: 'PUT', 
+                                    headers: {
+                                      'Content-Type': 'application/json'
+                                    }}
+                                  );
+                  const pokemon = await response.json();
+                  updateRow(pokemon);
+                } finally {
+                  setIsLoading(false);
+                }
               }}
             >
               Capture
@@ -92,7 +96,6 @@ const PokedexDataGrid = () => {
   const [rows, setRows] = useState([]);
   const [rowCount, setRowCount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
-  const [isError, setIsError] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
   
   const [paginationModel, setPaginationModel] = useState({
@@ -103,10 +106,10 @@ const PokedexDataGrid = () => {
   const [filterType, setFilterType] = useState<string | null>(searchParams.get('filterType'));
   const [globalSearch, setGlobalSearch] = useState<string | null>(searchParams.get('globalSearch'));
 
-  const updateRow = (name: string) => {
+  const updateRow = (pokemon: any) => {
     setRows((prevRows: any) => {
       return prevRows.map((row: any) =>
-        row.name === name ? { ...row, captured: true } : row,
+        row.name === pokemon.name ? { ...pokemon } : row,
       );
     });
   };
@@ -180,10 +183,8 @@ const PokedexDataGrid = () => {
       const data = await response.json();
       setRows(data.pokemons);
       setRowCount(data.totalCount);
-      setIsError(false);
     } catch (error) {
       console.error(error);
-      setIsError(true);
     } finally {
       setIsLoading(false);
     }
